@@ -39,19 +39,14 @@ function Player() {
 
     var now = current;
     if(now) {
-      var currentTime = audioCtx.currentTime;
-      var timeToSwitch = currentTime + FADE_TIME_IN_SEC;
-
-      now.gainNode.gain.value = 1;
+      var timeToSwitch = audioCtx.currentTime + FADE_TIME_IN_SEC;
+      this.fadeOutAndStop(now, timeToSwitch);
       nextSource.gainNode.gain.value = 0;
-
-      now.gainNode.gain.linearRampToValueAtTime(0,        timeToSwitch);
       nextSource.gainNode.gain.linearRampToValueAtTime(1, timeToSwitch);
-
-      now.source.loop = false;
     }
 
     current = nextSource;
+    return nextSource;
   };
 
   function createNextSource(buffer, onendedCallback) {
@@ -72,9 +67,23 @@ function Player() {
     };
   }
 
-  this.stop = function() {
-    var now = current;
-    if (now) { now.source.stop(); }
+  this.fadeOutAndStop = function(toStop, timeToSwitch) {
+    timeToSwitch = timeToSwitch || audioCtx.currentTime + FADE_TIME_IN_SEC;
+
+    toStop.gainNode.gain.value = 1;
+    toStop.gainNode.gain.linearRampToValueAtTime(0, timeToSwitch);
+    toStop.source.loop = false;
+    window.setTimeout(createForceStopCallback(this, toStop), FADE_TIME_IN_SEC * 1000 + 200);
+  };
+
+  function createForceStopCallback(self, toStop) {
+    return function() { self.forceStop(toStop); }
+  }
+
+  this.forceStop = function(source) {
+    if(source && source.source) {
+      source.source.stop();
+    }
   };
 
   this.setLoop = function(mustLoop) {

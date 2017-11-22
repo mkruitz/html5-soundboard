@@ -11,27 +11,26 @@ function Channel(config) {
   this.getDom = function() {
     return newElm('div', {'class': 'channel'}, function(channel) {
 
-      appendNewElm(channel, 'h2', {}, function (header) {
-        header.innerText = settings.title;
-      });
+      appendNewElm(channel, 'div', {'class':'channel-header'}, function (channelHeader) {
+        appendNewElm(channelHeader, 'h2', {}, function (header) {
+          header.innerText = settings.title;
+        });
 
-      appendNewElm(channel, 'div', {'class': 'controls'}, function (controls) {
-        appendNewElm(controls, 'label', {}, function (lbl) {
-          appendNewElm(lbl, 'input', {'type': 'checkbox'}, function (loop) {
-            loop.addEventListener('change', changeLoop, false);
-          });
-          appendNewElm(lbl, 'span', {}, function (lblText) {
-            lblText.innerText = ' Loop';
+        appendNewElm(channelHeader, 'div', {'class': 'controls'}, function (controls) {
+          appendNewElm(controls, 'label', {}, function (lbl) {
+            appendNewElm(lbl, 'input', {'type': 'checkbox'}, function (loop) {
+              loop.addEventListener('change', changeLoop, false);
+            });
+            appendNewElm(lbl, 'span', {}, function (lblText) {
+              lblText.innerText = ' Loop';
+            });
           });
         });
       });
 
-      settings.soundbar = appendNewElm(channel, 'div', {'class': 'sound-bar'});
-
-      appendNewElm(channel, 'div', {'class': 'drop-zone'}, function (dropzone) {
-        dropzone.innerText = '+';
-        dropzone.addEventListener('dragover', allowDroppingOfFiles, false);
-        dropzone.addEventListener('drop', addSounds, false);
+      settings.soundbar = appendNewElm(channel, 'div', {'class': 'channel-body sound-bar drop-zone'}, function(soundBar) {
+        soundBar.addEventListener('dragover', allowDroppingOfFiles, false);
+        soundBar.addEventListener('drop', addSounds, false);
       });
     });
   };
@@ -75,8 +74,7 @@ function Channel(config) {
 
     for (var i = 0, f; f = files[i]; i++) {
       var filename = f.name;
-      var sound = settings.soundBuffers[filename];
-      if (!sound) {
+      if (!settings.soundBuffers[filename]) {
         console.log('Start: Adding sound \'' + filename + '\'...');
         audioDecoder.decode(f, onDecoded(filename));
       }
@@ -87,44 +85,58 @@ function Channel(config) {
   }
 
   function onDecoded(filename) {
+    var playing = false;
+    var current;
+
     return function (buffer) {
-      settings.soundBuffers[filename] = buffer;
+      settings.soundBuffers[filename] = true;
       console.log('Finished: Adding sound \'' + filename + '\'...');
 
       appendNewElm(settings.soundbar, 'div', {'class': 'btn'}, function (btn) {
-        btn.innerText = filename;
-        btn.addEventListener('click', createPlaySoundCallback(btn, filename), false);
+        btn.addEventListener('click', playSound, false);
+        appendNewElm(btn, 'span', {}, function (text) {
+          text.innerText = filename;
+        });
+        appendNewElm(btn, 'span', {'style':'float:right;'}, function (btnGroup) {
+          btnGroup.addEventListener('click', stopEventBubbling, false);
+
+          appendNewElm(btnGroup, 'input', {'type':'button', 'value': 'Fade out'}, function (stop) {
+            stop.addEventListener('click', fadeOutAndStop, false);
+          });
+
+          appendNewElm(btnGroup, 'input', {'type':'button', 'value': 'F Stop'}, function (stop) {
+            stop.addEventListener('click', forceStop, false);
+          });
+        });
+
+        function playSound() {
+          if (playing) { return; }
+          current = player.play(buffer, clear);
+
+          btn.classList.add('active');
+          playing = true;
+        }
+
+        function fadeOutAndStop() {
+          player.fadeOutAndStop(current);
+        }
+
+        function forceStop() {
+          player.forceStop(current);
+        }
+
+        function clear() {
+          btn.classList.remove('active');
+          playing = false;
+          current = null;
+        }
       });
+
+      function stopEventBubbling(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+      }
     };
-  }
-
-  function createPlaySoundCallback(self, filename) {
-    var playing = false;
-
-    function playSound() {
-      player.play(settings.soundBuffers[filename], clear);
-
-      self.classList.add('active');
-      playing = true;
-    }
-
-    function stopSound() {
-      player.stop();
-    }
-
-    function clear() {
-      self.classList.remove('active');
-      playing = false;
-    }
-
-    return function (e) {
-      if(playing) {
-        stopSound();
-      }
-      else {
-        playSound();
-      }
-    }
   }
 
   return this;
