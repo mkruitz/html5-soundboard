@@ -27,28 +27,60 @@ function AudioDecoder() {
 }
 
 function Player() {
+  const FADE_TIME_IN_SEC = 1;
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  var source;
+  var current;
   var loop = false;
 
   this.play = function(buffer, onendedCallback) {
-    onendedCallback = onendedCallback || function() {};
+    var nextSource = createNextSource(buffer, onendedCallback);
 
-    source = audioCtx.createBufferSource();
-    source.connect(audioCtx.destination);
-    source.buffer = buffer;
-    source.loop = loop;
-    source.onended = onendedCallback;
-    source.start();
+    nextSource.source.start();
+
+    var now = current;
+    if(now) {
+      var currentTime = audioCtx.currentTime;
+      var timeToSwitch = currentTime + FADE_TIME_IN_SEC;
+
+      now.gainNode.gain.value = 1;
+      nextSource.gainNode.gain.value = 0;
+
+      now.gainNode.gain.linearRampToValueAtTime(0,        timeToSwitch);
+      nextSource.gainNode.gain.linearRampToValueAtTime(1, timeToSwitch);
+
+      now.source.loop = false;
+    }
+
+    current = nextSource;
   };
 
+  function createNextSource(buffer, onendedCallback) {
+    onendedCallback = onendedCallback || function() {};
+
+    var gainNode = audioCtx.createGain();
+    var source = audioCtx.createBufferSource();
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    source.buffer = buffer;
+    source.loop = loop;
+    source.onended = function() { current = null; onendedCallback(); };
+
+    return {
+      source: source,
+      gainNode: gainNode
+    };
+  }
+
   this.stop = function() {
-    if (source) { source.stop(); }
+    var now = current;
+    if (now) { now.source.stop(); }
   };
 
   this.setLoop = function(mustLoop) {
     loop = mustLoop;
-    if (source) { source.loop = mustLoop; }
+    var now = current;
+    if (now) { now.source.loop = mustLoop; }
   };
 
   return this;
