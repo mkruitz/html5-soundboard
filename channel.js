@@ -1,11 +1,11 @@
 function Channel(config) {
-  var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  var audioDecoder = new AudioDecoder();
+  var player = new Player();
   var settings = {
     title: config.title || '',
 
     soundbar: null,
-    soundBuffers: {},
-    loop: false
+    soundBuffers: {}
   };
 
   this.getDom = function() {
@@ -58,7 +58,7 @@ function Channel(config) {
   function changeLoop(evt) {
     var loop = evt.target.checked;
     console.log(settings.title, loop);
-    settings.loop = loop;
+    player.setLoop(loop);
   }
 
   function allowDroppingOfFiles(evt) {
@@ -78,15 +78,7 @@ function Channel(config) {
       var sound = settings.soundBuffers[filename];
       if (!sound) {
         console.log('Start: Adding sound \'' + filename + '\'...');
-        appendNewElm(settings.soundbar, 'div', {'class': 'btn'}, function (btn) {
-          btn.innerText = filename;
-          btn.addEventListener('click', createPlaySoundCallback(btn, filename), false);
-        });
-
-        var reader = new FileReader();
-        reader.onload = createReaderOnloadCallback(filename);
-
-        reader.readAsArrayBuffer(f);
+        audioDecoder.decode(f, onDecoded(filename));
       }
       else {
         console.log('Sound \'' + filename + '\' is already added.');
@@ -94,38 +86,30 @@ function Channel(config) {
     }
   }
 
-  function createReaderOnloadCallback(filename) {
-    return function (e) {
-      audioCtx.decodeAudioData(e.target.result, function (buffer) {
-          settings.soundBuffers[filename] = buffer;
-          console.log('Finished: Adding sound \'' + filename + '\'...');
-        },
-        function (e) {
-          console.log('Error with decoding audio data, \'' + filename + '\'' + e.err);
-        }
-      );
-    }
+  function onDecoded(filename) {
+    return function (buffer) {
+      settings.soundBuffers[filename] = buffer;
+      console.log('Finished: Adding sound \'' + filename + '\'...');
+
+      appendNewElm(settings.soundbar, 'div', {'class': 'btn'}, function (btn) {
+        btn.innerText = filename;
+        btn.addEventListener('click', createPlaySoundCallback(btn, filename), false);
+      });
+    };
   }
 
   function createPlaySoundCallback(self, filename) {
     var playing = false;
-    var source;
 
     function playSound() {
-      source = audioCtx.createBufferSource();
-      source.connect(audioCtx.destination);
-      source.buffer = settings.soundBuffers[filename];
-      source.loop = settings.loop;
-      source.onended = clear;
-      source.start();
+      player.play(settings.soundBuffers[filename], clear);
 
       self.classList.add('active');
-
       playing = true;
     }
 
     function stopSound() {
-      source.loop = false;
+      player.stop();
     }
 
     function clear() {
