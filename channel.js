@@ -25,6 +25,14 @@ function Channel(config) {
               lblText.innerText = ' Loop';
             });
           });
+          appendNewElm(controls, 'label', {}, function (lbl) {
+            appendNewElm(lbl, 'input', {'type': 'checkbox'}, function (loop) {
+              loop.addEventListener('change', changeFlowSound, false);
+            });
+            appendNewElm(lbl, 'span', {}, function (lblText) {
+              lblText.innerText = ' Flow sound';
+            });
+          });
         });
       });
 
@@ -56,8 +64,14 @@ function Channel(config) {
 
   function changeLoop(evt) {
     var loop = evt.target.checked;
-    console.log(settings.title, loop);
+    console.log('Loop:', settings.title, loop);
     player.setLoop(loop);
+  }
+  
+  function changeFlowSound(evt) {
+    var changeFlowSound = evt.target.checked;
+    console.log('Flow:', settings.title, changeFlowSound);
+    player.setChangeFlowSound(changeFlowSound);
   }
 
   function allowDroppingOfFiles(evt) {

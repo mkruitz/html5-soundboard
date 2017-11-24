@@ -31,6 +31,7 @@ function Player() {
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   var current;
   var loop = false;
+  var flow = false;
 
   this.play = function(buffer, onendedCallback) {
     var nextSource = createNextSource(buffer, onendedCallback);
@@ -38,7 +39,7 @@ function Player() {
     nextSource.source.start();
 
     var now = current;
-    if(now) {
+    if(now && flow) {
       var timeToSwitch = audioCtx.currentTime + FADE_TIME_IN_SEC;
       this.fadeOutAndStop(now, timeToSwitch);
       nextSource.gainNode.gain.value = 0;
@@ -90,6 +91,12 @@ function Player() {
     loop = mustLoop;
     var now = current;
     if (now) { now.source.loop = mustLoop; }
+  };
+  
+  this.setChangeFlowSound = function(mustFlow) {
+    flow = mustFlow;
+    var now = current;
+    if (now) { now.source.flow = mustFlow; }
   };
 
   return this;
