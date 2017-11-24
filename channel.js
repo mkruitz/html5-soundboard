@@ -142,7 +142,6 @@ function Channel(config) {
         function clear() {
           btn.classList.remove('active');
           playing = false;
-          current = null;
         }
       });
 

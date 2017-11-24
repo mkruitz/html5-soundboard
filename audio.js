@@ -60,7 +60,7 @@ function Player() {
 
     source.buffer = buffer;
     source.loop = loop;
-    source.onended = function() { current = null; onendedCallback(); };
+	  source.onended = onendedCallback;
 
     return {
       source: source,
