@@ -27,7 +27,7 @@ function AudioDecoder() {
 }
 
 function Player() {
-  const FADE_TIME_IN_SEC = 1;
+  const FADE_TIME_IN_SEC = 1.5;
   var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   var current;
   var loop = false;
